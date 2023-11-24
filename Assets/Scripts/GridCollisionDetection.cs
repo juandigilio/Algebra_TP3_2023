@@ -1,9 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Threading.Tasks;
 
 public class GridCollisionDetection : MonoBehaviour
 {
+    [System.Serializable]
+    private struct GridObject
+    {
+        public GameObject gObject;
+        public List<Vector3> gCollisions;
+    }
+
     [Header("Debug")]
     [SerializeField]
     private bool debugVertex;
@@ -24,7 +32,7 @@ public class GridCollisionDetection : MonoBehaviour
     [SerializeField]
     private Vector3[] grid;
     [SerializeField]
-    private List<GameObject> objectsToChekcCollision;
+    private List<GridObject> objectsToChekcCollision;
 
     [Header("Gizmo Settings")]
     [SerializeField]
@@ -33,6 +41,18 @@ public class GridCollisionDetection : MonoBehaviour
     private float vertexSize = 0.1f;
     [SerializeField]
     private Color vertexConnectionColor = Color.gray;
+
+    private bool CheckCollisionPointsInCommon(GridObject obj1, GridObject obj2)
+    {
+        foreach (Vector3 collisionPoint in obj1.gCollisions)
+        {
+            if (obj2.gCollisions.Contains(collisionPoint))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     bool Vector3ToSimpleConvexModelCollision(Vector3 point, GameObject gameObject)
     {
@@ -44,10 +64,10 @@ public class GridCollisionDetection : MonoBehaviour
         if (!objectMesh)
             return false;
 
-        // Vamos a sacar las normales nosotros manualmente.
-        for (int i = 0; i < objectMesh.triangles.Length; i += 3) // Recorremos los triangulos (o poligonos) de la mesh.
+        // Recorremos los triangulos (o poligonos) de la mesh.
+        for (int i = 0; i < objectMesh.triangles.Length; i += 3)
         {
-            // Sacamos los 3 vertices del triangulo actual.
+            // Obtenemos los 3 vertices del triangulo/poligono actual.
             Vector3 v1 = objectMesh.vertices[objectMesh.triangles[i]];
             Vector3 v2 = objectMesh.vertices[objectMesh.triangles[i + 1]];
             Vector3 v3 = objectMesh.vertices[objectMesh.triangles[i + 2]];
@@ -57,20 +77,20 @@ public class GridCollisionDetection : MonoBehaviour
             v2 = objectTransform.TransformPoint(v2);
             v3 = objectTransform.TransformPoint(v3);
 
-            // Calculamos las esquinas del triangulo
+            // Calculamos las aristas del triangulo
             Vector3 e1 = v2 - v1;
             Vector3 e2 = v3 - v1;
 
-            // Sacamos la normal haciendo un producto cruz de las esquinas del triangulo.
+            // Calculamos la normal del triangulo mediante el producto cruz de sus aristas.
             Vector3 normal = Vector3.Cross(e1, e2);
 
-            // Sacamos un vector desde cualquier vertice del triangulo hasta el punto.
+            // Calculamos el vector desde cualquier vertice del triangulo hasta el punto.
             Vector3 vp = point - v1;
 
-            // Calculamos el producto punto de la normal y el vector.
+            // Calcula el producto punto entre la normal y el vector.
             float dot = Vector3.Dot(normal, vp);
 
-            // Si el resultado es negativo, significa que el punto esta fuera de la mesh.
+            // Si el resultado es negativo, el punto esta fuera de la malla. (Recordar que solo funciona con una malla convexa)
             if (dot < 0)
             {
                 isInside = false;
@@ -79,31 +99,6 @@ public class GridCollisionDetection : MonoBehaviour
         }
         return isInside;
     }
-
-    /*
-    bool Vector3ToSimpleConvexMeshCollision(Vector3 point, Mesh mesh, Transform objectTransform)
-    {
-        bool isInside = true;
-
-        for (int i = 0; i < mesh.triangles.Length; i += 3)
-        {
-            Vector3 faceCenter = (mesh.vertices[mesh.triangles[i]] +
-                                  mesh.vertices[mesh.triangles[i + 1]] +
-                                  mesh.vertices[mesh.triangles[i + 2]]) / 3f;
-
-            Vector3 currentNormal = objectTransform.TransformDirection(faceCenter + mesh.normals[mesh.triangles[i]]);
-
-            float dot = Vector3.Dot(currentNormal, point);
-
-            if (dot < 0)
-            {
-                isInside = false;
-                break;
-            }
-        }
-        return isInside;
-    }
-    */
 
     private void CreateGrid()
     {
@@ -193,17 +188,47 @@ public class GridCollisionDetection : MonoBehaviour
         CreateGrid();
     }
 
+    private void Start()
+    {
+        Debug.LogWarning("Para comprobar colisiones mover manualmente las entidades desde el editor.");
+    }
+
     private void Update()
     {
-        if(objectsToChekcCollision.Count > 0)
+        if(objectsToChekcCollision.Count > 1)
         {
-            foreach(GameObject obj in objectsToChekcCollision)
+            foreach(GridObject gObj in objectsToChekcCollision)
             {
+                GameObject obj = gObj.gObject;
                 for (int i = 0; i < grid.Length; i++)
                 {
                     if (Vector3ToSimpleConvexModelCollision(grid[i], obj))
                     {
-                        Debug.Log(obj.name + " colliding with Vertex[" + i + "] from the grid.");
+                        if (!gObj.gCollisions.Contains(grid[i]))
+                        {
+                            gObj.gCollisions.Add(grid[i]);
+                        }
+                    }
+                    else 
+                    {
+                        if (gObj.gCollisions.Contains(grid[i]))
+                        {
+                            gObj.gCollisions.Remove(grid[i]);
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < objectsToChekcCollision.Count; i++)
+            {
+                for (int j = i + 1; j < objectsToChekcCollision.Count; j++)
+                {
+                    GridObject obj1 = objectsToChekcCollision[i];
+                    GridObject obj2 = objectsToChekcCollision[j];
+
+                    if (CheckCollisionPointsInCommon(obj1, obj2))
+                    {
+                        Debug.Log(obj1.gObject.name + " is colliding with " + obj2.gObject.name + "!!!");
                     }
                 }
             }
