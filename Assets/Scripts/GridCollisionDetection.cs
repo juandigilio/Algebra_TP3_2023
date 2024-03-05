@@ -193,50 +193,6 @@ public class GridCollisionDetection : MonoBehaviour
         Debug.LogWarning("Para comprobar colisiones mover manualmente las entidades desde el editor.");
     }
 
-    /*
-    private void Update()
-    {
-        if(objectsToChekcCollision.Count > 1)
-        {
-            foreach(GridObject gObj in objectsToChekcCollision)
-            {
-                GameObject obj = gObj.gObject;
-                for (int i = 0; i < grid.Length; i++)
-                {
-                    if (Vector3ToSimpleConvexModelCollision(grid[i], obj))
-                    {
-                        if (!gObj.gCollisions.Contains(grid[i]))
-                        {
-                            gObj.gCollisions.Add(grid[i]);
-                        }
-                    }
-                    else 
-                    {
-                        if (gObj.gCollisions.Contains(grid[i]))
-                        {
-                            gObj.gCollisions.Remove(grid[i]);
-                        }
-                    }
-                }
-            }
-
-            for (int i = 0; i < objectsToChekcCollision.Count; i++)
-            {
-                for (int j = i + 1; j < objectsToChekcCollision.Count; j++)
-                {
-                    GridObject obj1 = objectsToChekcCollision[i];
-                    GridObject obj2 = objectsToChekcCollision[j];
-
-                    if (CheckCollisionPointsInCommon(obj1, obj2))
-                    {
-                        Debug.Log(obj1.gObject.name + " is colliding with " + obj2.gObject.name + "!!!");
-                    }
-                }
-            }
-        }
-    }
-    */
-
     private void Update()
     {
         if (objectsToChekcCollision.Count > 1)
